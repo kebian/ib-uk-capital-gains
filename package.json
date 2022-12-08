@@ -1,0 +1,37 @@
+{
+    "name": "@kebian/ib-uk-capital-gains",
+    "version": "1.0.0",
+    "description": "Tool for calculating UK capital gains tax on Interactive Brokers trades.",
+    "private": true,
+    "main": "dist/index.js",
+    "type": "module",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "prepare": "npm run build",
+        "clean": "rm -rf dist",
+        "build": "npm run clean && tsc -p .",
+        "test": "exit 0"
+    },
+    "keywords": [
+        "capital",
+        "gains",
+        "interactive",
+        "brokers",
+        "uk"
+    ],
+    "author": "Rob Stiles",
+    "license": "MIT",
+    "devDependencies": {
+        "@adarna/prettier-config": "^1.0.5",
+        "@types/md5": "^2.3.2",
+        "@types/react": "^18.0.26",
+        "prettier": "^2.8.1",
+        "typescript": "^4.9.3"
+    },
+    "prettier": "@adarna/prettier-config",
+    "dependencies": {
+        "csv-parse": "^5.3.3",
+        "md5": "^2.3.0",
+        "react": "^18.2.0"
+    }
+}
