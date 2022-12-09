@@ -2,6 +2,10 @@
     "name": "@kebian/ib-uk-capital-gains",
     "version": "1.0.0",
     "description": "Tool for calculating UK capital gains tax on Interactive Brokers trades.",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/kebian/ib-uk-capital-gains.git"
+    },
     "private": true,
     "main": "dist/index.js",
     "type": "module",
