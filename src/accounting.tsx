@@ -24,6 +24,11 @@ const financialYears: FinancialYear[] = [
         start: new Date(Date.UTC(2022, 3, 6, 0, 0, 0)),
         end: new Date(Date.UTC(2023, 3, 5, 23, 59, 59)),
     },
+    {
+        label: '2023-2024',
+        start: new Date(Date.UTC(2023, 3, 6, 0, 0, 0)),
+        end: new Date(Date.UTC(2024, 3, 5, 23, 59, 59)),
+    },
 ]
 
 type Page = 'gains' | 'positions'
