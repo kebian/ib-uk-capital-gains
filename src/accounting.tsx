@@ -87,7 +87,13 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
             const tradesToDate = trades.filter(t => isDateBeforeYear(t.dateTime, year))
 
             const newGains = matchGains(tradesToDate).filter(g => isDateInYear(g.trade.dateTime, year))
-            setGains(newGains)
+            setGains(
+                newGains.sort((a, b) => {
+                    if (a.trade.symbol < b.trade.symbol) return -1
+                    if (a.trade.symbol > b.trade.symbol) return 1
+                    return 0
+                })
+            )
         } catch (e) {
             alert(e)
         }
