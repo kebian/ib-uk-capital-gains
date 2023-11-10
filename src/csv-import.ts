@@ -95,27 +95,36 @@ export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
                     const trades: StockTrade[] = []
                     for (const record of records) {
                         if (record['AssetClass'] !== 'STK') continue
-                        if (!record['Description'].includes('SPLIT'))
-                            reject(`Can't handle this type of corp action: ${record['Description']}`)
 
-                        // Note: perhaps we can check 'Type' here but I have no other examples other than FS
-                        // (which may mean stock split)
+                        switch (record['Type']) {
+                            case 'FS': {
+                                // stock split
+                                const qty = Number(record['Quantity'])
 
-                        const qty = Number(record['Quantity'])
+                                trades.push(
+                                    new StockTrade({
+                                        dateTime: fromCsvDateField(record['Date/Time']),
+                                        symbol: record['Symbol'],
+                                        buyOrSell: qty > 0 ? 'BUY' : 'SELL',
+                                        currency: record['CurrencyPrimary'],
+                                        qty,
+                                        price: 0,
+                                        commission: 0,
+                                        commissionCurrency: record['CurrencyPrimary'],
+                                        fxRate: Number(record['FXRateToBase']),
+                                    })
+                                )
+                                break
+                            }
 
-                        trades.push(
-                            new StockTrade({
-                                dateTime: fromCsvDateField(record['Date/Time']),
-                                symbol: record['Symbol'],
-                                buyOrSell: qty > 0 ? 'BUY' : 'SELL',
-                                currency: record['CurrencyPrimary'],
-                                qty,
-                                price: 0,
-                                commission: 0,
-                                commissionCurrency: record['CurrencyPrimary'],
-                                fxRate: Number(record['FXRateToBase']),
-                            })
-                        )
+                            case 'TC': // Aquisition?
+                                break
+
+                            default:
+                                reject(
+                                    `Can't handle this type of corp action: ${record['Type']}: ${record['Description']}`
+                                )
+                        }
                     }
                     resolve(trades)
                 } catch (e: any) {
