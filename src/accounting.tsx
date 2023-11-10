@@ -2,7 +2,7 @@ import React from 'react'
 import { ChangeEvent, MouseEvent, useEffect, useRef, useState } from 'react'
 import { StockTrade } from './stock-trade'
 import Gain from './capital-gains/gain'
-import { dedupeTrades, fileListToArray, FinancialYear, isDateInYear } from './misc'
+import { dedupeTrades, fileListToArray, FinancialYear, isDateBeforeYear, isDateInYear } from './misc'
 import { matchGains } from './capital-gains/match'
 import { CapitalGains } from './capital-gains/capital-gains'
 import { PositionsPage } from './positions/positions-page'
@@ -84,7 +84,9 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
 
     useEffect(() => {
         try {
-            const newGains = matchGains(trades).filter(g => isDateInYear(g.trade.dateTime, year))
+            const tradesToDate = trades.filter(t => isDateBeforeYear(t.dateTime, year))
+
+            const newGains = matchGains(tradesToDate).filter(g => isDateInYear(g.trade.dateTime, year))
             setGains(newGains)
         } catch (e) {
             alert(e)

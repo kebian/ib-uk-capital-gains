@@ -18,6 +18,11 @@ export const isDateInYear = (date: Date, year: FinancialYear) => {
     return unixDate >= year.start.getTime() && unixDate <= year.end.getTime()
 }
 
+export const isDateBeforeYear = (date: Date, year: FinancialYear) => {
+    const unixDate = date.getTime()
+    return unixDate <= year.end.getTime()
+}
+
 export const fromCsvDateField = (s: string): Date => {
     const [day, month, rest] = s.split('/')
     const [year, time] = rest.split(';')
