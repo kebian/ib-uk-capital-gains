@@ -43,7 +43,7 @@ export const dedupeTrades = (trades: StockTrade[]): StockTrade[] => {
         seen.set(trade.hash, trade)
     }
 
-    return dedupes
+    return dedupes.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
 }
 
 export const fileListToArray = (fileList: FileList): File[] => {
