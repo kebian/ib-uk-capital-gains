@@ -97,6 +97,7 @@ export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
                         if (record['AssetClass'] !== 'STK') continue
 
                         switch (record['Type']) {
+                            case 'RS': // reverse stock split
                             case 'FS': {
                                 // stock split
                                 const qty = Number(record['Quantity'])
