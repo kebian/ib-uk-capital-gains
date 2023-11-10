@@ -38,6 +38,7 @@ export class Section104 {
         const costInBase = (this._totalCostInBase / this._qty) * qty
         this._totalCostInBase -= costInBase
         this._qty -= qty
+        console.log(`Allocated Section 104 ${qty} ${this.symbol}.  Pool now has ${this._qty}.`)
         return costInBase
     }
 }

@@ -22,7 +22,7 @@ export const matchGains = (trades: StockTrade[]): Gain[] => {
             holdings.set(trade.symbol, holding)
         }
 
-        if (trade.isBuy || trade.price === 0) continue
+        if (trade.isBuy) continue
 
         gains = gains.concat(holding.matchGains([trade]))
     }
