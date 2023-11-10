@@ -101,13 +101,15 @@ export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
                         // Note: perhaps we can check 'Type' here but I have no other examples other than FS
                         // (which may mean stock split)
 
+                        const qty = Number(record['Quantity'])
+
                         trades.push(
                             new StockTrade({
                                 dateTime: fromCsvDateField(record['Date/Time']),
                                 symbol: record['Symbol'],
-                                buyOrSell: 'BUY',
+                                buyOrSell: qty > 0 ? 'BUY' : 'SELL',
                                 currency: record['CurrencyPrimary'],
-                                qty: Number(record['Quantity']),
+                                qty,
                                 price: 0,
                                 commission: 0,
                                 commissionCurrency: record['CurrencyPrimary'],
