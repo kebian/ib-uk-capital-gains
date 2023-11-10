@@ -26,6 +26,21 @@ export class Section104 {
     }
 
     /**
+     * Allocates stock inside of _allocatedTrades to stop it reappearing later
+     * @param qty
+     */
+    private allocateStockTrades(qty: number) {
+        let qtyLeft = qty
+        for (const t of this._allocatedTrades) {
+            const qtyToAllocate = Math.min(t.qtyLeft, qtyLeft)
+            t.allocate(qtyToAllocate)
+            qtyLeft -= qtyToAllocate
+            if (qtyLeft === 0) break
+        }
+        if (qtyLeft > 0) throw new Error(`Still have ${qtyLeft} stock to allocate for ${this._symbol}`)
+    }
+
+    /**
      * Allocate qty shares from the pool
      * @param qty Quantity to allocate
      * @returns the net price in base currency
@@ -33,15 +48,12 @@ export class Section104 {
     allocate(qty: number): number {
         if (qty > this._qty)
             throw new ImportError(
-                `Tried to allocate ${qty} stock from Section 104 holding but only ${this._qty} left.  Probably need more data importing.`
+                `Tried to allocate ${qty} ${this.symbol} stock from Section 104 holding but only ${this._qty} left.  Probably need more data importing.`
             )
         const costInBase = (this._totalCostInBase / this._qty) * qty
         this._totalCostInBase -= costInBase
-        const poolQtyBefore = this._qty
         this._qty -= qty
-        console.log(
-            `Allocated Section 104 ${qty} ${this.symbol} from pool of ${poolQtyBefore}.  Pool now has ${this._qty}.`
-        )
+        this.allocateStockTrades(qty)
         return costInBase
     }
 }

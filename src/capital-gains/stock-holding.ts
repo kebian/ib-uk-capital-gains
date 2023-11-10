@@ -12,6 +12,7 @@ export class StockHolding {
 
     constructor(symbol: string, trades: StockTrade[]) {
         this._symbol = symbol
+        this._allocatedTrades = []
         this._allocatedTrades = trades
             .filter(t => t.symbol === symbol && t.buyOrSell === 'BUY')
             .map(t => new AllocatedStockTrade(t))
@@ -42,7 +43,6 @@ export class StockHolding {
             costInBase: allocTrade.netPriceInBase(qtyAllocated),
             buyTrade: allocTrade.trade,
         })
-
         return qtyAllocated
     }
 

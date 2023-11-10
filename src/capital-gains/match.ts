@@ -13,8 +13,8 @@ export interface BuyMatch {
 
 export const matchGains = (trades: StockTrade[]): Gain[] => {
     const holdings = new Map<string, StockHolding>()
-
     let gains: Gain[] = []
+
     for (const trade of trades) {
         let holding = holdings.get(trade.symbol)
         if (holding === undefined) {
@@ -24,7 +24,7 @@ export const matchGains = (trades: StockTrade[]): Gain[] => {
 
         if (trade.isBuy) continue
 
-        gains = gains.concat(holding.matchGains([trade]))
+        gains = gains.concat(holding.matchGains([trade])).filter(g => g.trade.price > 0)
     }
     return gains
 }
