@@ -12,7 +12,7 @@ export const CapitalGains = (props: GainProps) => {
     return (
         <div>
             <h2 className="hidden print:block">Capital Gains</h2>
-            <table className="w-full" cellPadding={1}>
+            <table className="w-full border-collapse">
                 <thead>
                     <tr>
                         <th>Date Sold</th>

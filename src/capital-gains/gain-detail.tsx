@@ -26,13 +26,15 @@ export const GainDetail = (props: GainProps) => {
             {gain.buyMatches.map((buy, index) => (
                 <React.Fragment key={index}>
                     {index === 0 && (
-                        <tr className="border-t">
+                        <tr className="border-t border-solid">
                             <td>{formatDate(gain.trade.dateTime)}</td>
                             <td>{gain.trade.symbol}</td>
                             <td className="text-right">{formatQty(gain.trade.qty)}</td>
-                            <td>{buy.buyTrade !== undefined && formatDate(buy.buyTrade.dateTime)}</td>
+                            <td className="text-center">
+                                {buy.buyTrade !== undefined && formatDate(buy.buyTrade.dateTime)}
+                            </td>
                             <td className="text-right">{formatQty(buy.qty)}</td>
-                            <td>{buy.rule}</td>
+                            <td className="text-center">{buy.rule}</td>
                             <td className="text-right">{buy.costInBase.toFixed(priceDecimals)}</td>
                             <td className="text-right">{gain.costInBase.toFixed(priceDecimals)}</td>
                             <td className="text-right">{gain.proceedsInBase.toFixed(priceDecimals)}</td>
@@ -44,9 +46,11 @@ export const GainDetail = (props: GainProps) => {
                             <td></td>
                             <td></td>
                             <td></td>
-                            <td>{buy.buyTrade !== undefined && formatDate(buy.buyTrade.dateTime)}</td>
+                            <td className="text-center">
+                                {buy.buyTrade !== undefined && formatDate(buy.buyTrade.dateTime)}
+                            </td>
                             <td className="text-right">{formatQty(buy.qty)}</td>
-                            <td>{buy.rule}</td>
+                            <td className="text-center">{buy.rule}</td>
                             <td className="text-right">{buy.costInBase.toFixed(priceDecimals)}</td>
                             <td></td>
                             <td></td>
