@@ -121,6 +121,22 @@ export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
                             case 'TC': // Aquisition?
                                 break
 
+                            case 'DW': // Delisting
+                                trades.push(
+                                    new StockTrade({
+                                        dateTime: fromCsvDateField(record['Date/Time']),
+                                        symbol: record['Symbol'],
+                                        buyOrSell: 'SELL',
+                                        currency: record['CurrencyPrimary'],
+                                        qty: Number(record['Quantity']),
+                                        price: 0,
+                                        commission: 0,
+                                        commissionCurrency: record['CurrencyPrimary'],
+                                        fxRate: Number(record['FXRateToBase']),
+                                    })
+                                )
+                                break
+
                             default:
                                 reject(
                                     `Can't handle this type of corp action: ${record['Type']}: ${record['Description']}`
