@@ -24,7 +24,7 @@ export const matchGains = (trades: StockTrade[]): Gain[] => {
 
         if (trade.isBuy) continue
 
-        gains = gains.concat(holding.matchGains([trade])).filter(g => g.trade.price > 0)
+        gains = gains.concat(holding.matchGains([trade])).filter(g => g.trade.price >= 0)
     }
     return gains
 }
