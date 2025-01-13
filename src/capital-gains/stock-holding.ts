@@ -50,6 +50,7 @@ export class StockHolding {
         const matches: BuyMatch[] = []
         let qtyLeft = trade.qty
         for (const buy of this._allocatedTrades) {
+            if (buy.trade.dateTime.getTime() >= trade.dateTime.getTime()) continue
             if (!this.isWithin30Days(buy.trade, trade)) continue
 
             const qtyAllocated = this.allocateFrom(buy, qtyLeft, 'Bed & Breakfast', matches)
@@ -64,6 +65,7 @@ export class StockHolding {
         const matches: BuyMatch[] = []
         let qtyLeft = trade.qty
         for (const buy of this._allocatedTrades) {
+            if (buy.trade.dateTime.getTime() >= trade.dateTime.getTime()) continue
             if (!this.isSameDay(buy.trade, trade)) continue
 
             const qtyAllocated = this.allocateFrom(buy, qtyLeft, 'Same-day', matches)
