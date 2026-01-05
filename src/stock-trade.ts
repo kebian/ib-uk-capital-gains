@@ -47,6 +47,7 @@ export class StockTrade implements StockTradeFields {
         this.qty = Math.abs(this.qty)
 
         if (this.buyOrSell !== 'BUY' && this.buyOrSell !== 'SELL') throw new Error(`Buy/Sell was ${this.buyOrSell}`)
+        if (!this.tradeId) throw new Error('TradeID is required for proper deduplication')
 
         this._hash = this.makeHash()
     }

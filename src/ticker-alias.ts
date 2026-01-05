@@ -52,22 +52,6 @@ export const resolveCanonicalSymbol = (
         }
     }
 
-    // This symbol doesn't appear as a newSymbol, but it might be a key that was
-    // renamed TO something else. In that case, we need to find the canonical of
-    // the target symbol and see if they share a common ancestor.
-    const ownAliases = aliases.get(symbol)
-    if (ownAliases && ownAliases.length > 0) {
-        // This symbol was renamed to something else. Follow the chain to find
-        // what it became, then find the canonical of that.
-        const latestRename = ownAliases[ownAliases.length - 1]
-        const targetCanonical = resolveCanonicalSymbol(latestRename.newSymbol, aliases, visited)
-        // If the target has a canonical that's different and not this symbol, use it
-        // Otherwise this symbol itself is canonical
-        if (targetCanonical !== latestRename.newSymbol && targetCanonical !== symbol) {
-            return targetCanonical
-        }
-    }
-
     // This symbol has no incoming renames - it's the canonical
     return symbol
 }
