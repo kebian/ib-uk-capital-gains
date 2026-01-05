@@ -39,16 +39,10 @@ export const fromCsvDateField = (s: string): Date => {
 }
 
 export const dedupeTrades = (trades: StockTrade[]): StockTrade[] => {
-    const seen = new Map<string, StockTrade>()
-    const dedupes: StockTrade[] = []
-
-    for (const trade of trades) {
-        if (seen.has(trade.hash)) continue
-        dedupes.push(trade)
-        seen.set(trade.hash, trade)
-    }
-
-    return dedupes.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+    // Don't deduplicate - IB can have multiple fills with identical parameters
+    // (same time, price, qty, commission) that are legitimately different trades.
+    // Users should clear data before re-importing to avoid duplicates.
+    return [...trades].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
 }
 
 export const fileListToArray = (fileList: FileList): File[] => {
