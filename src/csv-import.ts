@@ -1,6 +1,12 @@
 import { StockTrade } from './stock-trade'
 import { parse } from 'csv-parse/browser/esm'
 import { fromCsvDateField } from './misc'
+import { TickerAliases, TickerRename } from './ticker-alias'
+
+export interface CorpActionsResult {
+    trades: StockTrade[]
+    aliases: TickerAliases
+}
 
 export const readTradesCsv = (s: string): Promise<StockTrade[]> => {
     const requiredHeaders = [
@@ -62,7 +68,7 @@ export const readTradesCsv = (s: string): Promise<StockTrade[]> => {
     })
 }
 
-export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
+export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
     const requiredHeaders = [
         'FXRateToBase',
         'AssetClass',
@@ -93,6 +99,16 @@ export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
                     }
 
                     const trades: StockTrade[] = []
+                    const aliases: TickerAliases = new Map()
+
+                    // Collect IC (CUSIP/ISIN Change) entries to pair them
+                    interface ICEntry {
+                        date: Date
+                        symbol: string
+                        qty: number
+                    }
+                    const icEntries: ICEntry[] = []
+
                     for (const record of records) {
                         if (record['AssetClass'] !== 'STK') continue
 
@@ -137,13 +153,59 @@ export const readCorpActionsCsv = (s: string): Promise<StockTrade[]> => {
                                 )
                                 break
 
+                            case 'IC': {
+                                // CUSIP/ISIN Change - ticker rename
+                                const qty = Number(record['Quantity'])
+                                icEntries.push({
+                                    date: fromCsvDateField(record['Date/Time']),
+                                    symbol: record['Symbol'],
+                                    qty,
+                                })
+                                break
+                            }
+
                             default:
                                 reject(
                                     `Can't handle this type of corp action: ${record['Type']}: ${record['Description']}`
                                 )
                         }
                     }
-                    resolve(trades)
+
+                    // Pair IC entries: negative qty = old symbol, positive qty = new symbol
+                    // They share the same date/time and absolute quantity
+                    const pairedDates = new Set<string>()
+                    for (const entry of icEntries) {
+                        if (entry.qty >= 0) continue // Skip positive entries, we start from negative
+
+                        const dateKey = entry.date.getTime().toString()
+                        if (pairedDates.has(dateKey)) continue
+
+                        // Find matching positive entry with same date and absolute quantity
+                        const match = icEntries.find(
+                            e =>
+                                e.qty > 0 &&
+                                e.date.getTime() === entry.date.getTime() &&
+                                Math.abs(e.qty) === Math.abs(entry.qty)
+                        )
+
+                        if (match) {
+                            pairedDates.add(dateKey)
+                            const oldSymbol = entry.symbol
+                            const newSymbol = match.symbol
+
+                            const rename: TickerRename = {
+                                date: entry.date,
+                                newSymbol,
+                            }
+
+                            const existing = aliases.get(oldSymbol) || []
+                            existing.push(rename)
+                            existing.sort((a, b) => a.date.getTime() - b.date.getTime())
+                            aliases.set(oldSymbol, existing)
+                        }
+                    }
+
+                    resolve({ trades, aliases })
                 } catch (e: any) {
                     reject(e)
                 }

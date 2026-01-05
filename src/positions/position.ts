@@ -7,14 +7,17 @@ export class Position {
     private _totalCost: number
     private _currency: string
 
-    constructor(symbol: string, allTrades: StockTrade[]) {
+    /**
+     * @param symbol The canonical symbol for this position
+     * @param trades All trades for this position (already filtered by caller)
+     */
+    constructor(symbol: string, trades: StockTrade[]) {
         this._symbol = symbol
         this._totalBought = 0
         this._totalSold = 0
         this._totalCost = 0
         this._currency = 'USD'
 
-        const trades = allTrades.filter(t => t.symbol === symbol)
         this.sumFromTrades(trades)
     }
 

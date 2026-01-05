@@ -1,4 +1,5 @@
 import { StockTrade } from '../stock-trade'
+import { TickerAliases, resolveCanonicalSymbol } from '../ticker-alias'
 import Gain from './gain'
 import StockHolding from './stock-holding'
 
@@ -11,20 +12,27 @@ export interface BuyMatch {
     buyTrade: StockTrade | undefined
 }
 
-export const matchGains = (trades: StockTrade[]): Gain[] => {
+export const matchGains = (trades: StockTrade[], aliases: TickerAliases = new Map()): Gain[] => {
     const holdings = new Map<string, StockHolding>()
     let gains: Gain[] = []
 
+    // Helper to get canonical symbol for a trade
+    const getCanonical = (trade: StockTrade) => resolveCanonicalSymbol(trade.symbol, aliases)
+
     for (const trade of trades) {
-        let holding = holdings.get(trade.symbol)
+        const canonicalSymbol = getCanonical(trade)
+
+        let holding = holdings.get(canonicalSymbol)
         if (holding === undefined) {
-            holding = new StockHolding(trade.symbol, trades)
-            holdings.set(trade.symbol, holding)
+            // Filter all trades that resolve to this canonical symbol
+            const tradesForSymbol = trades.filter(t => getCanonical(t) === canonicalSymbol)
+            holding = new StockHolding(canonicalSymbol, tradesForSymbol)
+            holdings.set(canonicalSymbol, holding)
         }
 
         if (trade.isBuy) continue
 
-        gains = gains.concat(holding.matchGains([trade])) //.filter(g => g.trade.price >= 0)
+        gains = gains.concat(holding.matchGains([trade]))
     }
     return gains
 }

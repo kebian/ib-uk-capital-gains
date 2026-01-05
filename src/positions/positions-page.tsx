@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react'
 import { StockTrade } from '../stock-trade'
 import { Position } from './position'
+import { TickerAliases, resolveCanonicalSymbol, resolveDisplaySymbol } from '../ticker-alias'
 
 type Props = {
     trades: StockTrade[]
+    aliases: TickerAliases
+    asOfDate: Date
 }
 
 export const PositionsPage = (props: Props) => {
-    const { trades } = props
+    const { trades, aliases, asOfDate } = props
     const [positions, setPositions] = useState<Map<string, Position>>(new Map())
 
     const sortedPositions = Array.from(positions.values())
@@ -21,11 +24,14 @@ export const PositionsPage = (props: Props) => {
     useEffect(() => {
         const newPositions = new Map<string, Position>()
         for (const trade of trades) {
-            if (newPositions.has(trade.symbol)) continue
-            newPositions.set(trade.symbol, new Position(trade.symbol, trades))
+            const canonicalSymbol = resolveCanonicalSymbol(trade.symbol, aliases)
+            if (newPositions.has(canonicalSymbol)) continue
+            // Filter all trades that resolve to this canonical symbol
+            const tradesForSymbol = trades.filter(t => resolveCanonicalSymbol(t.symbol, aliases) === canonicalSymbol)
+            newPositions.set(canonicalSymbol, new Position(canonicalSymbol, tradesForSymbol))
         }
         setPositions(newPositions)
-    }, [trades])
+    }, [trades, aliases])
 
     return (
         <div>
@@ -43,7 +49,7 @@ export const PositionsPage = (props: Props) => {
                 <tbody className="text-sm">
                     {sortedPositions.map(position => (
                         <tr key={position.symbol}>
-                            <td>{position.symbol}</td>
+                            <td>{resolveDisplaySymbol(position.symbol, asOfDate, aliases)}</td>
                             <td className="text-right">{position.quantity}</td>
                             <td className="text-right">{position.avgPrice.toFixed(2)}</td>
                             <td className="text-right">{position.costBasis.toFixed(2)}</td>
