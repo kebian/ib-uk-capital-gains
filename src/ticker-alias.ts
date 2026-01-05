@@ -15,15 +15,26 @@ type SerializedTickerAliases = Record<string, SerializedTickerRename[]>
 /**
  * Resolves a symbol to its canonical (original) symbol by checking if this symbol
  * is the result of a rename. Follows the chain back to the root.
+ * Uses visited set to prevent infinite recursion from circular rename chains.
  */
-export const resolveCanonicalSymbol = (symbol: string, aliases: TickerAliases): string => {
+export const resolveCanonicalSymbol = (
+    symbol: string,
+    aliases: TickerAliases,
+    visited: Set<string> = new Set()
+): string => {
+    if (visited.has(symbol)) {
+        // Circular reference detected, return current symbol to break the cycle
+        return symbol
+    }
+    visited.add(symbol)
+
     // Check if this symbol appears as a newSymbol in any alias chain
     for (const [originalSymbol, renames] of aliases) {
         for (const rename of renames) {
             if (rename.newSymbol === symbol) {
                 // Found it - this symbol was renamed from originalSymbol
                 // Recursively resolve in case originalSymbol is also a rename target
-                return resolveCanonicalSymbol(originalSymbol, aliases)
+                return resolveCanonicalSymbol(originalSymbol, aliases, visited)
             }
         }
     }
@@ -34,8 +45,20 @@ export const resolveCanonicalSymbol = (symbol: string, aliases: TickerAliases): 
 /**
  * Resolves what symbol to display for a given canonical symbol at a specific date.
  * Walks forward through the rename chain to find the latest name as of that date.
+ * Uses visited set to prevent infinite recursion from circular rename chains.
  */
-export const resolveDisplaySymbol = (canonicalSymbol: string, date: Date, aliases: TickerAliases): string => {
+export const resolveDisplaySymbol = (
+    canonicalSymbol: string,
+    date: Date,
+    aliases: TickerAliases,
+    visited: Set<string> = new Set()
+): string => {
+    if (visited.has(canonicalSymbol)) {
+        // Circular reference detected, return current symbol to break the cycle
+        return canonicalSymbol
+    }
+    visited.add(canonicalSymbol)
+
     const renames = aliases.get(canonicalSymbol)
     if (!renames || renames.length === 0) {
         return canonicalSymbol
@@ -53,7 +76,7 @@ export const resolveDisplaySymbol = (canonicalSymbol: string, date: Date, aliase
 
     // Check if the display symbol itself has been renamed (chained renames)
     if (displaySymbol !== canonicalSymbol) {
-        return resolveDisplaySymbol(displaySymbol, date, aliases)
+        return resolveDisplaySymbol(displaySymbol, date, aliases, visited)
     }
 
     return displaySymbol

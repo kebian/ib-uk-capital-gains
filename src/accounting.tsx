@@ -75,7 +75,7 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
 
         if (savedTradesJson !== null) {
             const tradesArray = JSON.parse(savedTradesJson) as any[]
-            if (!Array.isArray(tradesArray)) throw new Error('Invalid data in local storge.  Trades is not an array.')
+            if (!Array.isArray(tradesArray)) throw new Error('Invalid data in local storage. Trades is not an array.')
 
             const savedTrades: StockTrade[] = []
             for (const serialized of tradesArray) {
@@ -174,6 +174,8 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
     const handleImportCorpActions = () => fileInputCorpActionsRef.current?.click()
     const handleClearDataClick = () => {
         if (window.confirm('Are you sure you wish to permanently remove this data?')) {
+            localStorage.removeItem(localStorageVarName)
+            localStorage.removeItem(localStorageAliasesVarName)
             setTrades([])
             setAliases(new Map())
         }

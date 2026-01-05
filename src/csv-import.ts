@@ -173,23 +173,28 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
 
                     // Pair IC entries: negative qty = old symbol, positive qty = new symbol
                     // They share the same date/time and absolute quantity
-                    const pairedDates = new Set<string>()
-                    for (const entry of icEntries) {
+                    // Track paired indices to handle multiple renames on the same date
+                    const pairedNegativeIndices = new Set<number>()
+                    const pairedPositiveIndices = new Set<number>()
+                    for (let i = 0; i < icEntries.length; i++) {
+                        const entry = icEntries[i]
                         if (entry.qty >= 0) continue // Skip positive entries, we start from negative
-
-                        const dateKey = entry.date.getTime().toString()
-                        if (pairedDates.has(dateKey)) continue
+                        if (pairedNegativeIndices.has(i)) continue
 
                         // Find matching positive entry with same date and absolute quantity
-                        const match = icEntries.find(
-                            e =>
+                        const matchIndex = icEntries.findIndex(
+                            (e, idx) =>
                                 e.qty > 0 &&
+                                !pairedPositiveIndices.has(idx) &&
                                 e.date.getTime() === entry.date.getTime() &&
                                 Math.abs(e.qty) === Math.abs(entry.qty)
                         )
 
-                        if (match) {
-                            pairedDates.add(dateKey)
+                        if (matchIndex !== -1) {
+                            pairedNegativeIndices.add(i)
+                            pairedPositiveIndices.add(matchIndex)
+
+                            const match = icEntries[matchIndex]
                             const oldSymbol = entry.symbol
                             const newSymbol = match.symbol
 

@@ -22,12 +22,17 @@ export const PositionsPage = (props: Props) => {
         })
 
     useEffect(() => {
-        const newPositions = new Map<string, Position>()
+        // Pre-compute canonical symbols and group trades for O(n) complexity
+        const tradesByCanonical = new Map<string, StockTrade[]>()
         for (const trade of trades) {
             const canonicalSymbol = resolveCanonicalSymbol(trade.symbol, aliases)
-            if (newPositions.has(canonicalSymbol)) continue
-            // Filter all trades that resolve to this canonical symbol
-            const tradesForSymbol = trades.filter(t => resolveCanonicalSymbol(t.symbol, aliases) === canonicalSymbol)
+            const existing = tradesByCanonical.get(canonicalSymbol) || []
+            existing.push(trade)
+            tradesByCanonical.set(canonicalSymbol, existing)
+        }
+
+        const newPositions = new Map<string, Position>()
+        for (const [canonicalSymbol, tradesForSymbol] of tradesByCanonical) {
             newPositions.set(canonicalSymbol, new Position(canonicalSymbol, tradesForSymbol))
         }
         setPositions(newPositions)

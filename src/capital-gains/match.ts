@@ -16,16 +16,25 @@ export const matchGains = (trades: StockTrade[], aliases: TickerAliases = new Ma
     const holdings = new Map<string, StockHolding>()
     let gains: Gain[] = []
 
-    // Helper to get canonical symbol for a trade
-    const getCanonical = (trade: StockTrade) => resolveCanonicalSymbol(trade.symbol, aliases)
+    // Pre-compute canonical symbols and group trades by canonical symbol for O(n) complexity
+    const tradesByCanonical = new Map<string, StockTrade[]>()
+    const tradeCanonicalMap = new Map<StockTrade, string>()
 
     for (const trade of trades) {
-        const canonicalSymbol = getCanonical(trade)
+        const canonicalSymbol = resolveCanonicalSymbol(trade.symbol, aliases)
+        tradeCanonicalMap.set(trade, canonicalSymbol)
+
+        const existing = tradesByCanonical.get(canonicalSymbol) || []
+        existing.push(trade)
+        tradesByCanonical.set(canonicalSymbol, existing)
+    }
+
+    for (const trade of trades) {
+        const canonicalSymbol = tradeCanonicalMap.get(trade)!
 
         let holding = holdings.get(canonicalSymbol)
         if (holding === undefined) {
-            // Filter all trades that resolve to this canonical symbol
-            const tradesForSymbol = trades.filter(t => getCanonical(t) === canonicalSymbol)
+            const tradesForSymbol = tradesByCanonical.get(canonicalSymbol)!
             holding = new StockHolding(canonicalSymbol, tradesForSymbol)
             holdings.set(canonicalSymbol, holding)
         }
