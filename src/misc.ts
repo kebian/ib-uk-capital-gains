@@ -39,10 +39,18 @@ export const fromCsvDateField = (s: string): Date => {
 }
 
 export const dedupeTrades = (trades: StockTrade[]): StockTrade[] => {
-    // Don't deduplicate - IB can have multiple fills with identical parameters
-    // (same time, price, qty, commission) that are legitimately different trades.
-    // Users should clear data before re-importing to avoid duplicates.
-    return [...trades].sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+    // Deduplicate using TradeID-based hash. IB can have multiple fills with identical
+    // parameters (same time, price, qty, commission) that are legitimately different trades,
+    // but TradeID is always unique per trade.
+    const seen = new Set<string>()
+    const result: StockTrade[] = []
+    for (const trade of trades) {
+        if (!seen.has(trade.hash)) {
+            seen.add(trade.hash)
+            result.push(trade)
+        }
+    }
+    return result.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
 }
 
 export const fileListToArray = (fileList: FileList): File[] => {

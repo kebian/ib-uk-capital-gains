@@ -20,6 +20,7 @@ export const readTradesCsv = (s: string): Promise<StockTrade[]> => {
         'IBCommission',
         'IBCommissionCurrency',
         'Buy/Sell',
+        'TradeID',
     ]
 
     return new Promise((resolve, reject) => {
@@ -55,6 +56,7 @@ export const readTradesCsv = (s: string): Promise<StockTrade[]> => {
                                 commission: Number(record['IBCommission']),
                                 commissionCurrency: record['IBCommissionCurrency'],
                                 fxRate: Number(record['FXRateToBase']),
+                                tradeId: record['TradeID'],
                             })
                         )
                     }
@@ -70,6 +72,7 @@ export const readTradesCsv = (s: string): Promise<StockTrade[]> => {
 
 export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
     const requiredHeaders = [
+        'ActionID',
         'FXRateToBase',
         'AssetClass',
         'Symbol',
@@ -122,6 +125,9 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                 const qty = Number(record['Quantity'])
                                 const date = fromCsvDateField(record['Date/Time'])
                                 const symbol = record['Symbol']
+                                // ActionID is shared between paired entries (e.g., +40 MKFG and -400 MKFG.OLD),
+                                // so include symbol to make tradeId unique
+                                const tradeId = `${record['ActionID']}-${symbol}`
 
                                 const tradeIndex = trades.length
                                 trades.push(
@@ -135,6 +141,7 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                         commission: 0,
                                         commissionCurrency: record['CurrencyPrimary'],
                                         fxRate: Number(record['FXRateToBase']),
+                                        tradeId,
                                     })
                                 )
 
@@ -158,6 +165,7 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                         commission: 0,
                                         commissionCurrency: record['CurrencyPrimary'],
                                         fxRate: Number(record['FXRateToBase']),
+                                        tradeId: record['ActionID'],
                                     })
                                 )
                                 break

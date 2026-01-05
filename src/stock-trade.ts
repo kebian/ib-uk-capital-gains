@@ -11,6 +11,10 @@ export interface StockTradeFields {
     commissionCurrency: string
     fxRate: number
     /**
+     * Unique trade ID from IB Flex Query. Required for proper deduplication.
+     */
+    tradeId: string
+    /**
      * If true, this trade is part of a stock reorganization (e.g., reverse split with symbol change)
      * and should not be treated as a capital gains disposal.
      */
@@ -31,6 +35,7 @@ export class StockTrade implements StockTradeFields {
     commission!: number
     commissionCurrency!: string
     fxRate!: number
+    tradeId!: string
     isReorganization?: boolean
     private _hash: string
 
@@ -65,18 +70,7 @@ export class StockTrade implements StockTradeFields {
     }
 
     private makeHash(): string {
-        return md5(
-            JSON.stringify([
-                this.dateTime.toISOString(),
-                this.symbol,
-                this.buyOrSell,
-                this.currency,
-                this.price,
-                this.qty,
-                this.commission,
-                this.commissionCurrency,
-            ])
-        )
+        return md5(this.tradeId)
     }
 
     get netCash() {
