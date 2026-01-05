@@ -1,4 +1,5 @@
 import { StockTrade } from '../stock-trade'
+import { TickerAliases, resolveCanonicalSymbol } from '../ticker-alias'
 import Gain from './gain'
 import StockHolding from './stock-holding'
 
@@ -11,20 +12,36 @@ export interface BuyMatch {
     buyTrade: StockTrade | undefined
 }
 
-export const matchGains = (trades: StockTrade[]): Gain[] => {
+export const matchGains = (trades: StockTrade[], aliases: TickerAliases = new Map()): Gain[] => {
     const holdings = new Map<string, StockHolding>()
     let gains: Gain[] = []
 
+    // Pre-compute canonical symbols and group trades by canonical symbol for O(n) complexity
+    const tradesByCanonical = new Map<string, StockTrade[]>()
+    const tradeCanonicalMap = new Map<StockTrade, string>()
+
     for (const trade of trades) {
-        let holding = holdings.get(trade.symbol)
+        const canonicalSymbol = resolveCanonicalSymbol(trade.symbol, aliases)
+        tradeCanonicalMap.set(trade, canonicalSymbol)
+
+        const existing = tradesByCanonical.get(canonicalSymbol) || []
+        existing.push(trade)
+        tradesByCanonical.set(canonicalSymbol, existing)
+    }
+
+    for (const trade of trades) {
+        const canonicalSymbol = tradeCanonicalMap.get(trade)!
+
+        let holding = holdings.get(canonicalSymbol)
         if (holding === undefined) {
-            holding = new StockHolding(trade.symbol, trades)
-            holdings.set(trade.symbol, holding)
+            const tradesForSymbol = tradesByCanonical.get(canonicalSymbol)!
+            holding = new StockHolding(canonicalSymbol, tradesForSymbol)
+            holdings.set(canonicalSymbol, holding)
         }
 
         if (trade.isBuy) continue
 
-        gains = gains.concat(holding.matchGains([trade])) //.filter(g => g.trade.price >= 0)
+        gains = gains.concat(holding.matchGains([trade]))
     }
     return gains
 }

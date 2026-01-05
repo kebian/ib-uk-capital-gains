@@ -10,11 +10,15 @@ export class StockHolding {
     private _allocatedTrades: AllocatedStockTrade[]
     private _symbol: string
 
+    /**
+     * @param symbol The canonical symbol for this holding
+     * @param trades All trades that belong to this canonical symbol (already filtered by caller)
+     */
     constructor(symbol: string, trades: StockTrade[]) {
         this._symbol = symbol
         this._allocatedTrades = []
         this._allocatedTrades = trades
-            .filter(t => t.symbol === symbol && t.buyOrSell === 'BUY')
+            .filter(t => t.buyOrSell === 'BUY')
             .map(t => new AllocatedStockTrade(t))
     }
 
@@ -84,7 +88,7 @@ export class StockHolding {
      */
 
     matchGains(sellTrades: StockTrade[]): Gain[] {
-        let sales = sellTrades.filter(t => t.buyOrSell === 'SELL' && t.symbol === this._symbol)
+        let sales = sellTrades.filter(t => t.buyOrSell === 'SELL')
         let gains: Gain[] = []
 
         const doMatch = (callback: BuyMatchCallback) => {

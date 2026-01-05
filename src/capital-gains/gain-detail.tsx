@@ -1,12 +1,17 @@
 import React from 'react'
 import Gain from './gain'
+import { TickerAliases, resolveDisplaySymbol, resolveCanonicalSymbol } from '../ticker-alias'
 
 interface GainProps {
     gain: Gain
+    aliases: TickerAliases
+    asOfDate: Date
 }
 
 export const GainDetail = (props: GainProps) => {
-    const { gain } = props
+    const { gain, aliases, asOfDate } = props
+    const canonicalSymbol = resolveCanonicalSymbol(gain.trade.symbol, aliases)
+    const displaySymbol = resolveDisplaySymbol(canonicalSymbol, asOfDate, aliases)
     const priceDecimals = 5
     const stockDecimals = 4
     const formatDate = (date: Date) =>
@@ -28,7 +33,7 @@ export const GainDetail = (props: GainProps) => {
                     {index === 0 && (
                         <tr className="border-t border-solid">
                             <td>{formatDate(gain.trade.dateTime)}</td>
-                            <td>{gain.trade.symbol}</td>
+                            <td>{displaySymbol}</td>
                             <td className="text-right">{formatQty(gain.trade.qty)}</td>
                             <td className="text-center">
                                 {buy.buyTrade !== undefined && formatDate(buy.buyTrade.dateTime)}

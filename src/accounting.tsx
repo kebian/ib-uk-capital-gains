@@ -7,6 +7,7 @@ import { matchGains } from './capital-gains/match'
 import { CapitalGains } from './capital-gains/capital-gains'
 import { PositionsPage } from './positions/positions-page'
 import { readCorpActionsCsv, readTradesCsv } from './csv-import'
+import { TickerAliases, deserializeAliases, mergeAliases, serializeAliases } from './ticker-alias'
 
 const financialYears: FinancialYear[] = [
     {
@@ -43,6 +44,7 @@ const financialYears: FinancialYear[] = [
 
 type Page = 'gains' | 'positions'
 const localStorageVarName = 'ibukcgt-trades'
+const localStorageAliasesVarName = 'ibukcgt-ticker-aliases'
 
 export interface AccountingProps {
     className?: string
@@ -51,6 +53,7 @@ export interface AccountingProps {
 export const Accounting = ({ ...otherProps }: AccountingProps) => {
     const [gains, setGains] = useState<Gain[]>([])
     const [trades, setTrades] = useState<StockTrade[]>([])
+    const [aliases, setAliases] = useState<TickerAliases>(new Map())
     const [yearIndex, setYearIndex] = useState<number>(0)
     const [page, setPage] = useState<Page>('gains')
     const isMounted = useRef<boolean>(false)
@@ -70,20 +73,23 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
     useEffect(() => {
         const savedTradesJson = localStorage.getItem(localStorageVarName)
 
-        if (savedTradesJson === null) {
-            return
+        if (savedTradesJson !== null) {
+            const tradesArray = JSON.parse(savedTradesJson) as any[]
+            if (!Array.isArray(tradesArray)) throw new Error('Invalid data in local storage. Trades is not an array.')
+
+            const savedTrades: StockTrade[] = []
+            for (const serialized of tradesArray) {
+                const trade = StockTrade.deserialize(serialized)
+                savedTrades.push(trade)
+            }
+
+            setTrades(savedTrades)
         }
 
-        const tradesArray = JSON.parse(savedTradesJson) as any[]
-        if (!Array.isArray(tradesArray)) throw new Error('Invalid data in local storge.  Trades is not an array.')
-
-        const savedTrades: StockTrade[] = []
-        for (const serialized of tradesArray) {
-            const trade = StockTrade.deserialize(serialized)
-            savedTrades.push(trade)
+        const savedAliasesJson = localStorage.getItem(localStorageAliasesVarName)
+        if (savedAliasesJson !== null) {
+            setAliases(deserializeAliases(savedAliasesJson))
         }
-
-        setTrades(savedTrades)
     }, [])
 
     useEffect(() => {
@@ -93,10 +99,15 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
     }, [trades])
 
     useEffect(() => {
+        if (!isMounted.current) return
+        localStorage.setItem(localStorageAliasesVarName, serializeAliases(aliases))
+    }, [aliases])
+
+    useEffect(() => {
         try {
             const tradesToDate = trades.filter(t => isDateBeforeYear(t.dateTime, year))
 
-            const newGains = matchGains(tradesToDate).filter(g => isDateInYear(g.trade.dateTime, year))
+            const newGains = matchGains(tradesToDate, aliases).filter(g => isDateInYear(g.trade.dateTime, year))
             setGains(
                 newGains.sort((a, b) => {
                     if (a.trade.symbol < b.trade.symbol) return -1
@@ -107,7 +118,7 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
         } catch (e) {
             alert(e)
         }
-    }, [trades, year])
+    }, [trades, aliases, year])
 
     useEffect(() => {
         isMounted.current = true
@@ -137,17 +148,22 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
         if (e.target.files === null) return
 
         let totalTrades = [...trades]
+        let totalAliases = aliases
         for (const file of fileListToArray(e.target.files)) {
             try {
-                const tradesFromFile = await readCorpActionsCsv(await file.text())
-                if (tradesFromFile.length === 0) continue
-
-                totalTrades = totalTrades.concat(tradesFromFile)
+                const result = await readCorpActionsCsv(await file.text())
+                if (result.trades.length > 0) {
+                    totalTrades = totalTrades.concat(result.trades)
+                }
+                if (result.aliases.size > 0) {
+                    totalAliases = mergeAliases(totalAliases, result.aliases)
+                }
             } catch (e: any) {
                 alert(e)
             }
         }
         setTrades(dedupeTrades(totalTrades))
+        setAliases(totalAliases)
     }
 
     const handleYearChanged = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -157,7 +173,12 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
     const handleImportTradesClick = () => fileInputTradesRef.current?.click()
     const handleImportCorpActions = () => fileInputCorpActionsRef.current?.click()
     const handleClearDataClick = () => {
-        if (window.confirm('Are you sure you wish to permanently remove this data?')) setTrades([])
+        if (window.confirm('Are you sure you wish to permanently remove this data?')) {
+            localStorage.removeItem(localStorageVarName)
+            localStorage.removeItem(localStorageAliasesVarName)
+            setTrades([])
+            setAliases(new Map())
+        }
     }
 
     return (
@@ -219,8 +240,8 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
                         </li>
                     </ul>
                 </nav>
-                {page === 'gains' && <CapitalGains gains={gains} />}
-                {page === 'positions' && <PositionsPage trades={positionTrades} />}
+                {page === 'gains' && <CapitalGains gains={gains} aliases={aliases} asOfDate={year.end} />}
+                {page === 'positions' && <PositionsPage trades={positionTrades} aliases={aliases} asOfDate={year.end} />}
             </div>
         </div>
     )

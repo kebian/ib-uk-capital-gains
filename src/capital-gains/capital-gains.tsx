@@ -2,13 +2,16 @@ import React from 'react'
 import Gain from './gain'
 import GainDetail from './gain-detail'
 import Totals from './totals'
+import { TickerAliases } from '../ticker-alias'
 
 interface GainProps {
     gains: Gain[]
+    aliases: TickerAliases
+    asOfDate: Date
 }
 
 export const CapitalGains = (props: GainProps) => {
-    const { gains } = props
+    const { gains, aliases, asOfDate } = props
     return (
         <div>
             <h2 className="hidden print:block">Capital Gains</h2>
@@ -29,7 +32,7 @@ export const CapitalGains = (props: GainProps) => {
                 </thead>
                 <tbody className="text-sm">
                     {gains.map((gain, index) => (
-                        <GainDetail gain={gain} key={index} />
+                        <GainDetail gain={gain} aliases={aliases} asOfDate={asOfDate} key={index} />
                     ))}
                     <Totals gains={gains} />
                 </tbody>
