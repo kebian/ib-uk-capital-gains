@@ -9,38 +9,24 @@ import { PositionsPage } from './positions/positions-page'
 import { readCorpActionsCsv, readTradesCsv } from './csv-import'
 import { TickerAliases, deserializeAliases, mergeAliases, serializeAliases } from './ticker-alias'
 
-const financialYears: FinancialYear[] = [
-    {
-        label: '2020-2021',
-        start: new Date(Date.UTC(2020, 3, 6, 0, 0, 0)),
-        end: new Date(Date.UTC(2021, 3, 5, 23, 59, 59)),
-    },
-    {
-        label: '2021-2022',
-        start: new Date(Date.UTC(2021, 3, 6, 0, 0, 0)),
-        end: new Date(Date.UTC(2022, 3, 5, 23, 59, 59)),
-    },
-    {
-        label: '2022-2023',
-        start: new Date(Date.UTC(2022, 3, 6, 0, 0, 0)),
-        end: new Date(Date.UTC(2023, 3, 5, 23, 59, 59)),
-    },
-    {
-        label: '2023-2024',
-        start: new Date(Date.UTC(2023, 3, 6, 0, 0, 0)),
-        end: new Date(Date.UTC(2024, 3, 5, 23, 59, 59)),
-    },
-    {
-        label: '2024-2025',
-        start: new Date(Date.UTC(2024, 3, 6, 0, 0, 0)),
-        end: new Date(Date.UTC(2025, 3, 5, 23, 59, 59)),
-    },
-    {
-        label: '2025-2026',
-        start: new Date(Date.UTC(2025, 3, 6, 0, 0, 0)),
-        end: new Date(Date.UTC(2026, 3, 5, 23, 59, 59)),
-    },
-]
+function generateFinancialYears(): FinancialYear[] {
+    const startYear = 2020
+    const now = new Date()
+    // Current FY starts on April 6th of the current calendar year if we're past April 5th
+    const currentFYStartYear = now.getMonth() >= 3 && now.getDate() >= 6 ? now.getFullYear() : now.getFullYear() - 1
+
+    const years: FinancialYear[] = []
+    for (let year = startYear; year <= currentFYStartYear; year++) {
+        years.push({
+            label: `${year}-${year + 1}`,
+            start: new Date(Date.UTC(year, 3, 6, 0, 0, 0)),
+            end: new Date(Date.UTC(year + 1, 3, 5, 23, 59, 59)),
+        })
+    }
+    return years.reverse() // Most recent first
+}
+
+const financialYears: FinancialYear[] = generateFinancialYears()
 
 type Page = 'gains' | 'positions'
 const localStorageVarName = 'ibukcgt-trades'
