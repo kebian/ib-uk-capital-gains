@@ -11,7 +11,9 @@ export class Section104 {
         this._symbol = symbol
         this._qty = 0
         this._totalCostInBase = 0
-        this._allocatedTrades = trades.filter(t => t.trade.symbol === symbol && t.trade.buyOrSell === 'BUY')
+        // Don't filter by symbol - the caller (StockHolding) already filters by canonical symbol,
+        // and trades may have different symbols due to ticker renames (IC, RS, FS corporate actions)
+        this._allocatedTrades = trades.filter(t => t.trade.buyOrSell === 'BUY')
 
         for (const allocatedTrade of this._allocatedTrades) {
             if (allocatedTrade.qtyLeft === 0) continue

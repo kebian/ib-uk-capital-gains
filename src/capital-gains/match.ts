@@ -41,6 +41,9 @@ export const matchGains = (trades: StockTrade[], aliases: TickerAliases = new Ma
 
         if (trade.isBuy) continue
 
+        // Skip reorganization trades (e.g., RS/FS symbol changes) - they're not real disposals
+        if (trade.isReorganization) continue
+
         gains = gains.concat(holding.matchGains([trade]))
     }
     return gains

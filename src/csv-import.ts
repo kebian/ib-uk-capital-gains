@@ -107,6 +107,7 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                         symbol: string
                         qty: number
                         type: 'IC' | 'RS' | 'FS'
+                        tradeIndex?: number // Index into trades array for RS/FS entries
                     }
                     const icEntries: PairableEntry[] = []
                     const splitEntries: PairableEntry[] = []
@@ -122,9 +123,7 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                 const date = fromCsvDateField(record['Date/Time'])
                                 const symbol = record['Symbol']
 
-                                // Collect for potential pairing (symbol may change during split)
-                                splitEntries.push({ date, symbol, qty, type: record['Type'] as 'RS' | 'FS' })
-
+                                const tradeIndex = trades.length
                                 trades.push(
                                     new StockTrade({
                                         dateTime: date,
@@ -138,6 +137,9 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                         fxRate: Number(record['FXRateToBase']),
                                     })
                                 )
+
+                                // Collect for potential pairing (symbol may change during split)
+                                splitEntries.push({ date, symbol, qty, type: record['Type'] as 'RS' | 'FS', tradeIndex })
                                 break
                             }
 
@@ -243,6 +245,12 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                             const match = splitEntries[matchIndex]
                             // If symbols differ, the old symbol (negative qty) aliases to new symbol (positive qty)
                             addAlias(entry.symbol, match.symbol, entry.date)
+
+                            // Mark the SELL trade (negative qty entry) as a reorganization so it doesn't
+                            // generate a capital gain - it's just a stock reorganization, not a disposal
+                            if (entry.symbol !== match.symbol && entry.tradeIndex !== undefined) {
+                                trades[entry.tradeIndex].isReorganization = true
+                            }
                         }
                     }
 

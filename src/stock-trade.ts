@@ -10,6 +10,11 @@ export interface StockTradeFields {
     commission: number
     commissionCurrency: string
     fxRate: number
+    /**
+     * If true, this trade is part of a stock reorganization (e.g., reverse split with symbol change)
+     * and should not be treated as a capital gains disposal.
+     */
+    isReorganization?: boolean
 }
 
 interface SerializedStockTrade extends Omit<StockTradeFields, 'dateTime'> {
@@ -26,6 +31,7 @@ export class StockTrade implements StockTradeFields {
     commission!: number
     commissionCurrency!: string
     fxRate!: number
+    isReorganization?: boolean
     private _hash: string
 
     constructor(fields: StockTradeFields) {

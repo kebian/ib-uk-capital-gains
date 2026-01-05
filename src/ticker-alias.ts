@@ -37,6 +37,16 @@ export const resolveCanonicalSymbol = (
     }
     visited.add(symbol)
 
+    // First, check if this symbol has aliases (i.e., it's an old symbol that was renamed)
+    // If so, follow the chain forward to get to the "current" symbol, then resolve that
+    const ownAliases = aliases.get(symbol)
+    if (ownAliases && ownAliases.length > 0) {
+        // This symbol was renamed to something else - get the latest rename
+        const latestRename = ownAliases[ownAliases.length - 1]
+        // Recursively resolve the new symbol to find the canonical
+        return resolveCanonicalSymbol(latestRename.newSymbol, aliases, visited)
+    }
+
     // Check if this symbol appears as a newSymbol in any alias chain
     for (const [originalSymbol, renames] of aliases) {
         for (const rename of renames) {
