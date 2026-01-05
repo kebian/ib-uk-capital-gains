@@ -37,27 +37,38 @@ export const resolveCanonicalSymbol = (
     }
     visited.add(symbol)
 
-    // First, check if this symbol has aliases (i.e., it's an old symbol that was renamed)
-    // If so, follow the chain forward to get to the "current" symbol, then resolve that
-    const ownAliases = aliases.get(symbol)
-    if (ownAliases && ownAliases.length > 0) {
-        // This symbol was renamed to something else - get the latest rename
-        const latestRename = ownAliases[ownAliases.length - 1]
-        // Recursively resolve the new symbol to find the canonical
-        return resolveCanonicalSymbol(latestRename.newSymbol, aliases, visited)
-    }
+    // The canonical symbol is the OLDEST symbol in a rename chain.
+    // It's the symbol that was never renamed FROM another symbol (has no incoming renames).
 
     // Check if this symbol appears as a newSymbol in any alias chain
+    // (meaning it was renamed FROM something older)
     for (const [originalSymbol, renames] of aliases) {
         for (const rename of renames) {
             if (rename.newSymbol === symbol) {
                 // Found it - this symbol was renamed from originalSymbol
-                // Recursively resolve in case originalSymbol is also a rename target
+                // Keep going back until we find the root
                 return resolveCanonicalSymbol(originalSymbol, aliases, visited)
             }
         }
     }
-    // No rename found - this is the canonical symbol
+
+    // This symbol doesn't appear as a newSymbol, but it might be a key that was
+    // renamed TO something else. In that case, we need to find the canonical of
+    // the target symbol and see if they share a common ancestor.
+    const ownAliases = aliases.get(symbol)
+    if (ownAliases && ownAliases.length > 0) {
+        // This symbol was renamed to something else. Follow the chain to find
+        // what it became, then find the canonical of that.
+        const latestRename = ownAliases[ownAliases.length - 1]
+        const targetCanonical = resolveCanonicalSymbol(latestRename.newSymbol, aliases, visited)
+        // If the target has a canonical that's different and not this symbol, use it
+        // Otherwise this symbol itself is canonical
+        if (targetCanonical !== latestRename.newSymbol && targetCanonical !== symbol) {
+            return targetCanonical
+        }
+    }
+
+    // This symbol has no incoming renames - it's the canonical
     return symbol
 }
 
