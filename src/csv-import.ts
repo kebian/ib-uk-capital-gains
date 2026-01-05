@@ -126,8 +126,10 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                 const date = fromCsvDateField(record['Date/Time'])
                                 const symbol = record['Symbol']
                                 // ActionID is shared between paired entries (e.g., +40 MKFG and -400 MKFG.OLD),
-                                // so include symbol to make tradeId unique
-                                const tradeId = `${record['ActionID']}-${symbol}`
+                                // so include symbol and qty sign to make tradeId unique (for same-symbol splits
+                                // like SKLZ where both entries have the same symbol but different quantities)
+                                const qtySign = qty >= 0 ? 'pos' : 'neg'
+                                const tradeId = `${record['ActionID']}-${symbol}-${qtySign}`
 
                                 const tradeIndex = trades.length
                                 trades.push(
@@ -254,16 +256,16 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                             // If symbols differ, the old symbol (negative qty) aliases to new symbol (positive qty)
                             addAlias(entry.symbol, match.symbol, entry.date)
 
-                            // When symbols differ, mark both trades appropriately:
-                            // - SELL side (entry): isReorganization=true - skip for capital gains
+                            // Mark both trades as reorganization:
+                            // - SELL side (entry): isReorganization=true - skip for capital gains (not a real disposal)
                             // - BUY side (match): isReorganizationBuy=true - include in Section 104 pool
-                            if (entry.symbol !== match.symbol) {
-                                if (entry.tradeIndex !== undefined) {
-                                    trades[entry.tradeIndex].isReorganization = true
-                                }
-                                if (match.tradeIndex !== undefined) {
-                                    trades[match.tradeIndex].isReorganizationBuy = true
-                                }
+                            // This applies even when symbols are the same (e.g., SKLZ reverse split where
+                            // CUSIP changes but ticker stays the same)
+                            if (entry.tradeIndex !== undefined) {
+                                trades[entry.tradeIndex].isReorganization = true
+                            }
+                            if (match.tradeIndex !== undefined) {
+                                trades[match.tradeIndex].isReorganizationBuy = true
                             }
                         }
                     }
