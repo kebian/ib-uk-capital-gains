@@ -19,6 +19,12 @@ export interface StockTradeFields {
      * and should not be treated as a capital gains disposal.
      */
     isReorganization?: boolean
+    /**
+     * If true, this is the BUY side of a reorganization (e.g., reverse split with symbol change).
+     * These shares should be included in Section 104 pool for capital gains.
+     * For position tracking, they ARE counted to reflect the new share count after the split.
+     */
+    isReorganizationBuy?: boolean
 }
 
 interface SerializedStockTrade extends Omit<StockTradeFields, 'dateTime'> {
@@ -37,6 +43,7 @@ export class StockTrade implements StockTradeFields {
     fxRate!: number
     tradeId!: string
     isReorganization?: boolean
+    isReorganizationBuy?: boolean
     private _hash: string
 
     constructor(fields: StockTradeFields) {

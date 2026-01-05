@@ -33,7 +33,8 @@ export const PositionsPage = (props: Props) => {
 
         const newPositions = new Map<string, Position>()
         for (const [canonicalSymbol, tradesForSymbol] of tradesByCanonical) {
-            newPositions.set(canonicalSymbol, new Position(canonicalSymbol, tradesForSymbol))
+            const pos = new Position(canonicalSymbol, tradesForSymbol)
+            newPositions.set(canonicalSymbol, pos)
         }
         setPositions(newPositions)
     }, [trades, aliases])

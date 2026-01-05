@@ -42,15 +42,22 @@ export const dedupeTrades = (trades: StockTrade[]): StockTrade[] => {
     // Deduplicate using TradeID-based hash. IB can have multiple fills with identical
     // parameters (same time, price, qty, commission) that are legitimately different trades,
     // but TradeID is always unique per trade.
-    const seen = new Set<string>()
-    const result: StockTrade[] = []
+    //
+    // When duplicate trades are found, merge reorganization flags from the newer trade
+    // into the existing one. This ensures that importing corp actions after trades
+    // (or reloading from localStorage) properly marks reorganization trades.
+    const tradesByHash = new Map<string, StockTrade>()
     for (const trade of trades) {
-        if (!seen.has(trade.hash)) {
-            seen.add(trade.hash)
-            result.push(trade)
+        const existing = tradesByHash.get(trade.hash)
+        if (existing) {
+            // Merge reorganization flags from the new trade into existing
+            if (trade.isReorganization) existing.isReorganization = true
+            if (trade.isReorganizationBuy) existing.isReorganizationBuy = true
+        } else {
+            tradesByHash.set(trade.hash, trade)
         }
     }
-    return result.sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
+    return Array.from(tradesByHash.values()).sort((a, b) => a.dateTime.getTime() - b.dateTime.getTime())
 }
 
 export const fileListToArray = (fileList: FileList): File[] => {
