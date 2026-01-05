@@ -50,7 +50,9 @@ export class Section104 {
     allocate(qty: number): number {
         if (qty > this._qty)
             throw new ImportError(
-                `Tried to allocate ${qty} ${this.symbol} stock from Section 104 holding but only ${this._qty} left.  Probably need more data importing.`
+                `Tried to allocate ${qty} ${this.symbol} stock from Section 104 holding but only ${this._qty} left. ` +
+                    `Have you imported all trades AND corporate actions? ` +
+                    `Corporate actions (ticker renames, stock splits) must be imported to link trades across symbol changes.`
             )
         const costInBase = (this._totalCostInBase / this._qty) * qty
         this._totalCostInBase -= costInBase
