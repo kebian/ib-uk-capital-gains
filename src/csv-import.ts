@@ -246,10 +246,15 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                             // If symbols differ, the old symbol (negative qty) aliases to new symbol (positive qty)
                             addAlias(entry.symbol, match.symbol, entry.date)
 
-                            // Mark the SELL trade (negative qty entry) as a reorganization so it doesn't
-                            // generate a capital gain - it's just a stock reorganization, not a disposal
-                            if (entry.symbol !== match.symbol && entry.tradeIndex !== undefined) {
-                                trades[entry.tradeIndex].isReorganization = true
+                            // Mark BOTH trades as reorganization when symbols differ - the SELL removes old shares
+                            // and BUY adds new shares, but both are just restructuring existing position
+                            if (entry.symbol !== match.symbol) {
+                                if (entry.tradeIndex !== undefined) {
+                                    trades[entry.tradeIndex].isReorganization = true
+                                }
+                                if (match.tradeIndex !== undefined) {
+                                    trades[match.tradeIndex].isReorganization = true
+                                }
                             }
                         }
                     }

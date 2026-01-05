@@ -25,6 +25,10 @@ export class Position {
         if (trades.length > 0) this._currency = trades[0].currency
 
         for (const trade of trades) {
+            // Skip reorganization trades (RS/FS with symbol changes) - they don't change the position,
+            // they just rename/restructure existing shares
+            if (trade.isReorganization) continue
+
             if (trade.isBuy) {
                 this._totalBought += trade.qty
                 this._totalCost += trade.netCash
