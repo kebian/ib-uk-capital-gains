@@ -101,13 +101,15 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                     const trades: StockTrade[] = []
                     const aliases: TickerAliases = new Map()
 
-                    // Collect IC (CUSIP/ISIN Change) entries to pair them
-                    interface ICEntry {
+                    // Collect entries that may need pairing (IC and RS/FS with symbol changes)
+                    interface PairableEntry {
                         date: Date
                         symbol: string
                         qty: number
+                        type: 'IC' | 'RS' | 'FS'
                     }
-                    const icEntries: ICEntry[] = []
+                    const icEntries: PairableEntry[] = []
+                    const splitEntries: PairableEntry[] = []
 
                     for (const record of records) {
                         if (record['AssetClass'] !== 'STK') continue
@@ -117,11 +119,16 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                             case 'FS': {
                                 // stock split
                                 const qty = Number(record['Quantity'])
+                                const date = fromCsvDateField(record['Date/Time'])
+                                const symbol = record['Symbol']
+
+                                // Collect for potential pairing (symbol may change during split)
+                                splitEntries.push({ date, symbol, qty, type: record['Type'] as 'RS' | 'FS' })
 
                                 trades.push(
                                     new StockTrade({
-                                        dateTime: fromCsvDateField(record['Date/Time']),
-                                        symbol: record['Symbol'],
+                                        dateTime: date,
+                                        symbol,
                                         buyOrSell: qty > 0 ? 'BUY' : 'SELL',
                                         currency: record['CurrencyPrimary'],
                                         qty,
@@ -160,6 +167,7 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                     date: fromCsvDateField(record['Date/Time']),
                                     symbol: record['Symbol'],
                                     qty,
+                                    type: 'IC',
                                 })
                                 break
                             }
@@ -169,6 +177,17 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                                     `Can't handle this type of corp action: ${record['Type']}: ${record['Description']}`
                                 )
                         }
+                    }
+
+                    // Helper to add an alias
+                    const addAlias = (oldSymbol: string, newSymbol: string, date: Date) => {
+                        if (oldSymbol === newSymbol) return // No alias needed if symbols are the same
+
+                        const rename: TickerRename = { date, newSymbol }
+                        const existing = aliases.get(oldSymbol) || []
+                        existing.push(rename)
+                        existing.sort((a, b) => a.date.getTime() - b.date.getTime())
+                        aliases.set(oldSymbol, existing)
                     }
 
                     // Pair IC entries: negative qty = old symbol, positive qty = new symbol
@@ -195,18 +214,35 @@ export const readCorpActionsCsv = (s: string): Promise<CorpActionsResult> => {
                             pairedPositiveIndices.add(matchIndex)
 
                             const match = icEntries[matchIndex]
-                            const oldSymbol = entry.symbol
-                            const newSymbol = match.symbol
+                            addAlias(entry.symbol, match.symbol, entry.date)
+                        }
+                    }
 
-                            const rename: TickerRename = {
-                                date: entry.date,
-                                newSymbol,
-                            }
+                    // Pair RS/FS (split) entries when symbols differ
+                    // e.g., MKFG +40 and MKFG.OLD -400 on same date means MKFG.OLD -> MKFG
+                    const pairedSplitNegIndices = new Set<number>()
+                    const pairedSplitPosIndices = new Set<number>()
+                    for (let i = 0; i < splitEntries.length; i++) {
+                        const entry = splitEntries[i]
+                        if (entry.qty >= 0) continue // Start from negative (old shares being removed)
+                        if (pairedSplitNegIndices.has(i)) continue
 
-                            const existing = aliases.get(oldSymbol) || []
-                            existing.push(rename)
-                            existing.sort((a, b) => a.date.getTime() - b.date.getTime())
-                            aliases.set(oldSymbol, existing)
+                        // Find matching positive entry with same date and same type
+                        const matchIndex = splitEntries.findIndex(
+                            (e, idx) =>
+                                e.qty > 0 &&
+                                !pairedSplitPosIndices.has(idx) &&
+                                e.date.getTime() === entry.date.getTime() &&
+                                e.type === entry.type
+                        )
+
+                        if (matchIndex !== -1) {
+                            pairedSplitNegIndices.add(i)
+                            pairedSplitPosIndices.add(matchIndex)
+
+                            const match = splitEntries[matchIndex]
+                            // If symbols differ, the old symbol (negative qty) aliases to new symbol (positive qty)
+                            addAlias(entry.symbol, match.symbol, entry.date)
                         }
                     }
 
