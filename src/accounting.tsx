@@ -240,7 +240,7 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
                         </li>
                     </ul>
                 </nav>
-                {page === 'gains' && <CapitalGains gains={gains} />}
+                {page === 'gains' && <CapitalGains gains={gains} aliases={aliases} asOfDate={year.end} />}
                 {page === 'positions' && <PositionsPage trades={positionTrades} aliases={aliases} asOfDate={year.end} />}
             </div>
         </div>
