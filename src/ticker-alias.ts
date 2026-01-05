@@ -8,6 +8,15 @@ interface SerializedTickerRename {
     newSymbol: string
 }
 
+/**
+ * Map from a canonical (original) ticker symbol to its sequence of renames.
+ *
+ * Keys are always the canonical/original symbols, not any of the renamed symbols.
+ * Renamed symbols only appear as `newSymbol` values inside the rename arrays.
+ *
+ * For chained renames (A→B→C), each intermediate symbol that was itself renamed
+ * from another symbol will also appear as a key with its own rename history.
+ */
 export type TickerAliases = Map<string, TickerRename[]>
 
 type SerializedTickerAliases = Record<string, SerializedTickerRename[]>
@@ -121,17 +130,34 @@ export const serializeAliases = (aliases: TickerAliases): string => {
 }
 
 export const deserializeAliases = (json: string): TickerAliases => {
-    const obj: SerializedTickerAliases = JSON.parse(json)
     const aliases: TickerAliases = new Map()
 
-    for (const [symbol, renames] of Object.entries(obj)) {
-        aliases.set(
-            symbol,
-            renames.map(r => ({
-                date: new Date(r.date),
-                newSymbol: r.newSymbol,
-            }))
-        )
+    try {
+        const obj = JSON.parse(json)
+
+        if (typeof obj !== 'object' || obj === null) {
+            console.error('Invalid ticker aliases data: expected object')
+            return aliases
+        }
+
+        for (const [symbol, renames] of Object.entries(obj)) {
+            if (!Array.isArray(renames)) {
+                console.error(`Invalid ticker aliases data: expected array for symbol ${symbol}`)
+                continue
+            }
+
+            aliases.set(
+                symbol,
+                renames
+                    .filter(r => typeof r === 'object' && r !== null && 'date' in r && 'newSymbol' in r)
+                    .map(r => ({
+                        date: new Date((r as SerializedTickerRename).date),
+                        newSymbol: (r as SerializedTickerRename).newSymbol,
+                    }))
+            )
+        }
+    } catch (e) {
+        console.error('Failed to parse ticker aliases JSON:', e)
     }
 
     return aliases
