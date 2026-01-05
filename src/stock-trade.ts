@@ -10,6 +10,21 @@ export interface StockTradeFields {
     commission: number
     commissionCurrency: string
     fxRate: number
+    /**
+     * Unique trade ID from IB Flex Query. Required for proper deduplication.
+     */
+    tradeId: string
+    /**
+     * If true, this trade is part of a stock reorganization (e.g., reverse split with symbol change)
+     * and should not be treated as a capital gains disposal.
+     */
+    isReorganization?: boolean
+    /**
+     * If true, this is the BUY side of a reorganization (e.g., reverse split with symbol change).
+     * These shares should be included in Section 104 pool for capital gains.
+     * For position tracking, they ARE counted to reflect the new share count after the split.
+     */
+    isReorganizationBuy?: boolean
 }
 
 interface SerializedStockTrade extends Omit<StockTradeFields, 'dateTime'> {
@@ -26,6 +41,9 @@ export class StockTrade implements StockTradeFields {
     commission!: number
     commissionCurrency!: string
     fxRate!: number
+    tradeId!: string
+    isReorganization?: boolean
+    isReorganizationBuy?: boolean
     private _hash: string
 
     constructor(fields: StockTradeFields) {
@@ -36,6 +54,7 @@ export class StockTrade implements StockTradeFields {
         this.qty = Math.abs(this.qty)
 
         if (this.buyOrSell !== 'BUY' && this.buyOrSell !== 'SELL') throw new Error(`Buy/Sell was ${this.buyOrSell}`)
+        if (!this.tradeId) throw new Error('TradeID is required for proper deduplication')
 
         this._hash = this.makeHash()
     }
@@ -59,18 +78,7 @@ export class StockTrade implements StockTradeFields {
     }
 
     private makeHash(): string {
-        return md5(
-            JSON.stringify([
-                this.dateTime.toISOString(),
-                this.symbol,
-                this.buyOrSell,
-                this.currency,
-                this.price,
-                this.qty,
-                this.commission,
-                this.commissionCurrency,
-            ])
-        )
+        return md5(this.tradeId)
     }
 
     get netCash() {

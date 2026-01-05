@@ -25,6 +25,12 @@ export class Position {
         if (trades.length > 0) this._currency = trades[0].currency
 
         for (const trade of trades) {
+            // For reorganization trades (RS/FS with symbol change):
+            // - isReorganization (SELL): counts as sold (old shares removed)
+            // - isReorganizationBuy (BUY): counts as bought (new shares added)
+            // This is different from capital gains where we skip the SELL to avoid
+            // triggering a taxable event. For positions, we need to track the actual
+            // share count change from the split ratio (e.g., 400 old → 40 new = -360 net).
             if (trade.isBuy) {
                 this._totalBought += trade.qty
                 this._totalCost += trade.netCash

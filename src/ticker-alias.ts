@@ -37,17 +37,55 @@ export const resolveCanonicalSymbol = (
     }
     visited.add(symbol)
 
+    // The canonical symbol is the OLDEST symbol in a rename chain.
+    // We need to find a single canonical for all symbols that eventually point to the same target.
+    //
+    // Example: AONE→MKFG and MKFG.OLD→MKFG
+    // Both AONE and MKFG.OLD should resolve to AONE (the oldest in the main chain).
+
     // Check if this symbol appears as a newSymbol in any alias chain
+    // (meaning it was renamed FROM something older)
     for (const [originalSymbol, renames] of aliases) {
         for (const rename of renames) {
             if (rename.newSymbol === symbol) {
                 // Found it - this symbol was renamed from originalSymbol
-                // Recursively resolve in case originalSymbol is also a rename target
+                // Keep going back until we find the root
                 return resolveCanonicalSymbol(originalSymbol, aliases, visited)
             }
         }
     }
-    // No rename found - this is the canonical symbol
+
+    // This symbol doesn't appear as a newSymbol. It might be:
+    // 1. A true root (like AONE that renamed to MKFG) - this IS the canonical
+    // 2. A parallel root (like MKFG.OLD that also renamed to MKFG) - need to find common canonical
+    //
+    // For case 2, find all symbols that renamed to the same target and pick
+    // the one with the earliest rename date as the canonical.
+    const ownRenames = aliases.get(symbol)
+    if (ownRenames && ownRenames.length > 0) {
+        const target = ownRenames[ownRenames.length - 1].newSymbol
+        const myRenameDate = ownRenames[0].date.getTime()
+
+        // Find the symbol with the earliest rename date to the same target
+        let earliestSymbol = symbol
+        let earliestDate = myRenameDate
+
+        for (const [originalSymbol, renames] of aliases) {
+            for (const rename of renames) {
+                if (rename.newSymbol === target && rename.date.getTime() < earliestDate) {
+                    earliestDate = rename.date.getTime()
+                    earliestSymbol = originalSymbol
+                }
+            }
+        }
+
+        // If another symbol renamed earlier, use its canonical
+        if (earliestSymbol !== symbol) {
+            return resolveCanonicalSymbol(earliestSymbol, aliases, visited)
+        }
+    }
+
+    // This symbol has no incoming renames and is a true root (or the earliest parallel root)
     return symbol
 }
 

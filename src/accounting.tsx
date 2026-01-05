@@ -106,8 +106,9 @@ export const Accounting = ({ ...otherProps }: AccountingProps) => {
     useEffect(() => {
         try {
             const tradesToDate = trades.filter(t => isDateBeforeYear(t.dateTime, year))
+            const allGains = matchGains(tradesToDate, aliases)
+            const newGains = allGains.filter(g => isDateInYear(g.trade.dateTime, year))
 
-            const newGains = matchGains(tradesToDate, aliases).filter(g => isDateInYear(g.trade.dateTime, year))
             setGains(
                 newGains.sort((a, b) => {
                     if (a.trade.symbol < b.trade.symbol) return -1

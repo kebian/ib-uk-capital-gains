@@ -11,7 +11,9 @@ export class Section104 {
         this._symbol = symbol
         this._qty = 0
         this._totalCostInBase = 0
-        this._allocatedTrades = trades.filter(t => t.trade.symbol === symbol && t.trade.buyOrSell === 'BUY')
+        // Don't filter by symbol - the caller (StockHolding) already filters by canonical symbol,
+        // and trades may have different symbols due to ticker renames (IC, RS, FS corporate actions)
+        this._allocatedTrades = trades.filter(t => t.trade.buyOrSell === 'BUY')
 
         for (const allocatedTrade of this._allocatedTrades) {
             if (allocatedTrade.qtyLeft === 0) continue
@@ -48,7 +50,9 @@ export class Section104 {
     allocate(qty: number): number {
         if (qty > this._qty)
             throw new ImportError(
-                `Tried to allocate ${qty} ${this.symbol} stock from Section 104 holding but only ${this._qty} left.  Probably need more data importing.`
+                `Tried to allocate ${qty} ${this.symbol} stock from Section 104 holding but only ${this._qty} left. ` +
+                    `Have you imported all trades AND corporate actions? ` +
+                    `Corporate actions (ticker renames, stock splits) must be imported to link trades across symbol changes.`
             )
         const costInBase = (this._totalCostInBase / this._qty) * qty
         this._totalCostInBase -= costInBase
